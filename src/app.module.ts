@@ -4,19 +4,25 @@ import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-//import { User } from './users/entities/user.entity';
 import { PostsModule } from './posts/posts.module';
 import { ProductsModule } from './products/products.module';
 import { AuthModule } from './auth/auth.module';
+import { HttpModule } from '@nestjs/axios';
+import { ScheduleModule } from '@nestjs/schedule';
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
-  imports: [
+  imports: [HttpModule,
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true, 
     }),
+    CacheModule.register({
+      isGlobal: true,
+    }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      inject: [ConfigService], // Asegúrate de inyectar ConfigService aquí
+      inject: [ConfigService], 
       useFactory: async (configService: ConfigService) => ({
         type:'postgres',
         host: configService.get('DB_HOST'),
@@ -25,11 +31,10 @@ import { AuthModule } from './auth/auth.module';
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_NAME'),
         autoLoadEntities: true,
-        //entities:[User],
-        synchronize: true, // Solo en desarrollo; no usar en producción
+        //entities:[User], para produccion
+        synchronize: true, // Solo en desarrollo 
 
       }),
-      
     }),
     UsersModule,
     PostsModule,

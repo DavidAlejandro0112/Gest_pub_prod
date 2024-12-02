@@ -1,43 +1,29 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Request } from "express";
-import { jwtConstants } from '../constants/jwt.constants';
 
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // El objeto context proporciona información
-    // sobre la solicitud entrante y el entorno de ejecución.
     const request = context.switchToHttp().getRequest();
-    const token = this.extractTokenFromHeader(request);
+    const authHeader = request.headers.authorization;
 
-    if (!token) {
-      throw new UnauthorizedException();
+    if (!authHeader) {
+      throw new UnauthorizedException('Authorization header not found');
     }
+
+    const token = authHeader.split(' ')[1]; // Asumiendo que el formato es "Bearer <token>"
 
     try {
-      const payload = await this.jwtService.verifyAsync(token, {
-        secret: jwtConstants.secret,
-      });
-      request.user = payload;
+      const payload = await this.jwtService.verifyAsync(token);
+      request.user = payload; 
+      return true;
     } catch (error) {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException('Invalid token');
     }
-
-    // Aquí puedes implementar tu lógica de autenticación o autorización.
-    // Por ejemplo, verificar si el usuario está autenticado, si tiene los roles adecuados, etc.
-
-    // Si la validación es exitosa, devuelve true, permitiendo el acceso.
-    // Si la validación falla, devuelve false, denegando el acceso.
-
-    return true; 
+  } 
   }
-
-  private extractTokenFromHeader(request: Request) {
-    const [type, token] = request.headers.authorization?.split(" ") ?? [];
-    return type === "Bearer" ? token : undefined;
-  }
-}
